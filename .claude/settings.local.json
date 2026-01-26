@@ -3,7 +3,11 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(git -C /mnt/c/Users/jeff/github/games/spider log --oneline)",
-      "Bash(./gradlew lwjgl3:compileJava:*)"
+      "Bash(./gradlew lwjgl3:compileJava:*)",
+      "Bash(./gradlew compileJava:*)",
+      "Bash(chmod:*)",
+      "Bash(./iconify.sh:*)",
+      "Bash(find:*)"
     ]
   }
 }

@@ -1,0 +1,7 @@
+{
+  "title": "Spider",
+  "category": "game",
+  "description": "Ad-free Spider Solitaire with 1-6 suit difficulties. No energy systems, no microtransactions, no watching ads to undo. Just a classic card game that respects your time with daily challenges, full undo support, and cross-platform play on desktop, Android, and iOS.",
+  "github": "https://github.com/nexivibe/spider",
+  "tech": ["libGDX", "Java", "Gradle"]
+}

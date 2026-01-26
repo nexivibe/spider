@@ -51,8 +51,14 @@ public class GameScreen implements Screen, InputProcessor {
     private static final float MIN_REVEALED_SPACING = 15f;  // Minimum spacing when compressed
     private static final float TABLEAU_SPACING = CARD_WIDTH + CARD_GAP;  // Card width + 2px gap
     private static final float CARD_CORNER_RADIUS = 10f;  // Slightly larger for bigger cards
-    private static final float TOP_MARGIN = 10f;  // Space from top of screen
-    private static final float BOTTOM_MARGIN = 30f;  // Minimal space for HUD at bottom, cards can overlap
+    private static final float BASE_TOP_MARGIN = 10f;  // Base space from top of screen
+    private static final float BASE_BOTTOM_MARGIN = 30f;  // Base space for HUD at bottom
+
+    // Dynamic safe area margins (calculated at runtime)
+    private float safeTopMargin;
+    private float safeBottomMargin;
+    private float safeLeftMargin;
+    private float safeRightMargin;
 
     // Layout positions (calculated in render)
     private float startX;
@@ -88,8 +94,9 @@ public class GameScreen implements Screen, InputProcessor {
     // Timer
     private float elapsedGameTime;
 
-    // Undo button position (15% smaller: 40 * 0.85 = 34)
-    private static final float UNDO_ICON_SIZE = 34f;
+    // Undo button position - sized for touch targets
+    private static final float BASE_ICON_SIZE = 40f;  // Base size, scaled for mobile
+    private float iconSize;  // Actual icon size after scaling
     private float undoIconX;
     private float undoIconY;
 
@@ -118,8 +125,8 @@ public class GameScreen implements Screen, InputProcessor {
     private boolean menuOpen;
     private Stage menuStage;
     private Skin menuSkin;
-    private static final float MENU_ICON_SIZE = 34f;  // 15% smaller: 40 * 0.85 = 34
-    private static final float MENU_ICON_PADDING = 8f;  // Moved up and left
+    private static final float BASE_ICON_PADDING = 12f;  // Base padding from edges
+    private float iconPadding;  // Actual padding after safe area calculation
 
     // Prior result for retry comparison (null if first attempt)
     private final GameResult priorResult;
@@ -143,6 +150,13 @@ public class GameScreen implements Screen, InputProcessor {
         // Set up viewport for proper resizing
         viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
         viewport.apply(true);
+
+        // Calculate safe area margins (convert screen pixels to virtual coordinates)
+        calculateSafeAreas();
+
+        // Scale icon size for mobile touch targets
+        iconSize = SafeAreaHelper.isMobile() ? BASE_ICON_SIZE * 1.25f : BASE_ICON_SIZE;
+        iconPadding = BASE_ICON_PADDING + (safeTopMargin > BASE_TOP_MARGIN ? 5f : 0f);
 
         shapeRenderer = new ShapeRenderer();
         font = new BitmapFont();
@@ -277,17 +291,17 @@ public class GameScreen implements Screen, InputProcessor {
         float screenWidth = VIRTUAL_WIDTH;
         float screenHeight = VIRTUAL_HEIGHT;
 
-        // Stock and foundation at top of screen (stick to top for mobile)
-        stockX = screenWidth - CARD_WIDTH - EDGE_MARGIN;
-        stockY = screenHeight - CARD_HEIGHT - TOP_MARGIN;
+        // Stock and foundation at top of screen (respecting safe area for notches)
+        stockX = screenWidth - CARD_WIDTH - safeRightMargin;
+        stockY = screenHeight - CARD_HEIGHT - safeTopMargin;
 
         // Tableaus start at edge margin, cards fill the width with minimal gaps
-        startX = EDGE_MARGIN;
+        startX = safeLeftMargin;
         // Cards start just below the stock/foundation area
         startY = stockY - 10f;
 
-        // Available height for card stacks (from startY down to bottom margin)
-        float availableHeight = startY - BOTTOM_MARGIN;
+        // Available height for card stacks (from startY down to safe bottom margin)
+        float availableHeight = startY - safeBottomMargin;
 
         // Set projection matrix for shape renderer
         shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
@@ -317,7 +331,7 @@ public class GameScreen implements Screen, InputProcessor {
 
         // Draw completed suits as cascaded pile centered in available space
         // Available space is between menu buttons and stock pile
-        float completedAreaLeft = MENU_ICON_PADDING + MENU_ICON_SIZE + 40f;
+        float completedAreaLeft = safeLeftMargin + iconPadding + iconSize + 50f;
         float completedAreaRight = stockX - 20f;
         float completedAreaWidth = completedAreaRight - completedAreaLeft;
         float cascadeOffset = 18f; // Offset between cascaded cards
@@ -376,19 +390,20 @@ public class GameScreen implements Screen, InputProcessor {
         }
 
         // Draw menu and undo buttons adjacent (menu left of undo)
-        float buttonMargin = 6f;
-        float buttonSpacing = 4f;
-        float menuButtonX = MENU_ICON_PADDING;
-        float menuButtonY = screenHeight - MENU_ICON_PADDING - MENU_ICON_SIZE - buttonMargin;
+        // Position respects safe area for notches/status bar
+        float buttonMargin = 8f;
+        float buttonSpacing = 6f;
+        float menuButtonX = safeLeftMargin + iconPadding;
+        float menuButtonY = screenHeight - safeTopMargin - iconPadding - iconSize;
         drawButtonBackground(menuButtonX - buttonMargin, menuButtonY - buttonMargin,
-            MENU_ICON_SIZE + buttonMargin * 2, MENU_ICON_SIZE + buttonMargin * 2);
+            iconSize + buttonMargin * 2, iconSize + buttonMargin * 2);
         drawHamburgerIcon(menuButtonX, menuButtonY);
 
         // Draw undo button to the right of menu button
-        undoIconX = menuButtonX + MENU_ICON_SIZE + buttonMargin * 2 + buttonSpacing;
+        undoIconX = menuButtonX + iconSize + buttonMargin * 2 + buttonSpacing;
         undoIconY = menuButtonY;
         drawButtonBackground(undoIconX - buttonMargin, undoIconY - buttonMargin,
-            UNDO_ICON_SIZE + buttonMargin * 2, UNDO_ICON_SIZE + buttonMargin * 2);
+            iconSize + buttonMargin * 2, iconSize + buttonMargin * 2);
         drawUndoIcon(undoIconX, undoIconY, canUndo());
 
         // Draw bottom HUD text using screen coordinates (anchored to bottom)
@@ -512,7 +527,11 @@ public class GameScreen implements Screen, InputProcessor {
         // Use actual screen coordinates so HUD anchors to real bottom of window
         int screenW = Gdx.graphics.getWidth();
         int screenH = Gdx.graphics.getHeight();
-        float hudHeight = 25f; // Fixed pixel height for bottom bar
+
+        // Get safe area bottom inset and add HUD height
+        int bottomInset = SafeAreaHelper.getBottomInset();
+        float hudContentHeight = 25f; // Height for HUD content
+        float totalHudHeight = bottomInset + hudContentHeight; // Total area including safe inset
 
         // Reset GL viewport to full screen (override the game viewport's offset)
         Gdx.gl.glViewport(0, 0, screenW, screenH);
@@ -524,7 +543,7 @@ public class GameScreen implements Screen, InputProcessor {
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(new Color(0.0f, 0.35f, 0.18f, 1f)); // Off-green
-        shapeRenderer.rect(0, 0, screenW, hudHeight);
+        shapeRenderer.rect(0, 0, screenW, totalHudHeight);
         shapeRenderer.end();
 
         // Restore game viewport
@@ -536,6 +555,11 @@ public class GameScreen implements Screen, InputProcessor {
         // Use actual screen coordinates so text anchors to real bottom of window
         int screenW = Gdx.graphics.getWidth();
         int screenH = Gdx.graphics.getHeight();
+
+        // Get safe area insets
+        int bottomInset = SafeAreaHelper.getBottomInset();
+        int leftInset = SafeAreaHelper.getLeftInset();
+        int rightInset = SafeAreaHelper.getRightInset();
 
         // Reset GL viewport to full screen (override the game viewport's offset)
         Gdx.gl.glViewport(0, 0, screenW, screenH);
@@ -550,15 +574,19 @@ public class GameScreen implements Screen, InputProcessor {
         batch.begin();
         font.setColor(new Color(0.8f, 0.9f, 0.8f, 1f)); // Light greenish white
 
-        float hudY = 8f; // Y position from bottom
-        // Seed - left aligned
-        font.draw(batch, "Seed: " + randomSeed, 10, hudY + font.getCapHeight());
+        // Position text above the safe area bottom inset
+        float hudY = bottomInset + 8f; // Y position from bottom, above safe area
+        float leftPadding = leftInset + 10f;
+        float rightPadding = rightInset + 10f;
+
+        // Seed - left aligned with safe padding
+        font.draw(batch, "Seed: " + randomSeed, leftPadding, hudY + font.getCapHeight());
         // Time - centered
         String timeStr = formatTime(elapsedGameTime);
         font.draw(batch, timeStr, screenW / 2f - 25, hudY + font.getCapHeight());
-        // Score, moves, and undos - right aligned
+        // Score, moves, and undos - right aligned with safe padding
         String scoreText = "Score: " + score + "  Moves: " + totalMoves + "  Undos: " + totalUndos;
-        font.draw(batch, scoreText, screenW - 230, hudY + font.getCapHeight());
+        font.draw(batch, scoreText, screenW - 230 - rightPadding, hudY + font.getCapHeight());
 
         batch.end();
 
@@ -582,18 +610,20 @@ public class GameScreen implements Screen, InputProcessor {
     }
 
     private void drawHamburgerIcon(float x, float y) {
-        float lineHeight = 3f;
-        float lineWidth = MENU_ICON_SIZE - 16f;
-        float lineSpacing = 8f;
-        float offsetX = 8f;
-        float offsetY = 10f;
+        // Scale icon internals based on icon size
+        float scale = iconSize / BASE_ICON_SIZE;
+        float lineHeight = 3f * scale;
+        float lineWidth = iconSize - 16f * scale;
+        float lineSpacing = 10f * scale;
+        float offsetX = 8f * scale;
+        float offsetY = 12f * scale;
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.WHITE);
 
         // Three horizontal lines centered in button
         for (int i = 0; i < 3; i++) {
-            float lineY = y + MENU_ICON_SIZE - offsetY - i * lineSpacing;
+            float lineY = y + iconSize - offsetY - i * lineSpacing;
             shapeRenderer.rect(x + offsetX, lineY, lineWidth, lineHeight);
         }
 
@@ -603,13 +633,16 @@ public class GameScreen implements Screen, InputProcessor {
     private void drawUndoIcon(float x, float y, boolean enabled) {
         Color color = enabled ? Color.WHITE : new Color(0.5f, 0.5f, 0.5f, 0.5f);
 
+        // Scale icon based on icon size
+        float scale = iconSize / BASE_ICON_SIZE;
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(color);
 
         // Draw curved arrow for undo
-        float centerX = x + UNDO_ICON_SIZE / 2;
-        float centerY = y + UNDO_ICON_SIZE / 2;
-        float radius = UNDO_ICON_SIZE / 3;
+        float centerX = x + iconSize / 2;
+        float centerY = y + iconSize / 2;
+        float radius = iconSize / 3;
 
         // Draw arc (partial circle going counter-clockwise)
         shapeRenderer.arc(centerX, centerY, radius, 45, 270, 20);
@@ -623,10 +656,11 @@ public class GameScreen implements Screen, InputProcessor {
         // Arrow pointing left at the top of the arc
         float arrowX = centerX - radius * 0.7f;
         float arrowY = centerY + radius * 0.7f;
+        float arrowSize = 8f * scale;
         shapeRenderer.triangle(
-            arrowX - 8, arrowY,
-            arrowX + 4, arrowY + 8,
-            arrowX + 4, arrowY - 8
+            arrowX - arrowSize, arrowY,
+            arrowX + arrowSize * 0.5f, arrowY + arrowSize,
+            arrowX + arrowSize * 0.5f, arrowY - arrowSize
         );
 
         shapeRenderer.end();
@@ -805,6 +839,9 @@ public class GameScreen implements Screen, InputProcessor {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
 
+        // Recalculate safe areas on resize (orientation changes, etc.)
+        calculateSafeAreas();
+
         // Anchor viewport to top of screen when letterboxing
         float worldAspect = VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
         float screenAspect = (float) width / height;
@@ -823,6 +860,29 @@ public class GameScreen implements Screen, InputProcessor {
             menuStage.getViewport().setScreenY(yOffset);
             menuStage.getViewport().apply();
         }
+    }
+
+    /**
+     * Calculate safe area margins by converting screen-space safe insets to virtual coordinates.
+     * This accounts for notches, rounded corners, and system UI on modern mobile devices.
+     */
+    private void calculateSafeAreas() {
+        // Get safe insets in screen pixels
+        int topInsetPx = SafeAreaHelper.getTopInset();
+        int bottomInsetPx = SafeAreaHelper.getBottomInset();
+        int leftInsetPx = SafeAreaHelper.getLeftInset();
+        int rightInsetPx = SafeAreaHelper.getRightInset();
+
+        // Convert screen pixels to virtual coordinates
+        // The viewport may be scaled, so we need to account for that
+        float scaleX = VIRTUAL_WIDTH / viewport.getScreenWidth();
+        float scaleY = VIRTUAL_HEIGHT / viewport.getScreenHeight();
+
+        // Apply safe insets plus base margins
+        safeTopMargin = Math.max(BASE_TOP_MARGIN, topInsetPx * scaleY + BASE_TOP_MARGIN);
+        safeBottomMargin = Math.max(BASE_BOTTOM_MARGIN, bottomInsetPx * scaleY + BASE_BOTTOM_MARGIN);
+        safeLeftMargin = Math.max(EDGE_MARGIN, leftInsetPx * scaleX + EDGE_MARGIN);
+        safeRightMargin = Math.max(EDGE_MARGIN, rightInsetPx * scaleX + EDGE_MARGIN);
     }
 
     @Override
@@ -1068,7 +1128,7 @@ public class GameScreen implements Screen, InputProcessor {
                     draggedCards = validStack;
 
                     // Calculate card Y position using dynamic spacing
-                    float availableHeight = startY - BOTTOM_MARGIN;
+                    float availableHeight = startY - safeBottomMargin;
                     float[] spacings = calculateCardSpacings(col, availableHeight);
                     float cardX = startX + col * TABLEAU_SPACING;
                     float cardY = startY;
@@ -1166,19 +1226,19 @@ public class GameScreen implements Screen, InputProcessor {
     // --- Hit Detection ---
 
     private boolean isOnMenuIcon(float worldX, float worldY) {
-        float buttonMargin = 6f;
-        float menuX = MENU_ICON_PADDING - buttonMargin;
-        float menuY = VIRTUAL_HEIGHT - MENU_ICON_PADDING - MENU_ICON_SIZE - buttonMargin - buttonMargin;
-        float buttonSize = MENU_ICON_SIZE + buttonMargin * 2;
+        float buttonMargin = 8f;
+        float menuX = safeLeftMargin + iconPadding - buttonMargin;
+        float menuY = VIRTUAL_HEIGHT - safeTopMargin - iconPadding - iconSize - buttonMargin;
+        float buttonSize = iconSize + buttonMargin * 2;
         return worldX >= menuX && worldX <= menuX + buttonSize &&
                worldY >= menuY && worldY <= menuY + buttonSize;
     }
 
     private boolean isOnUndoIcon(float worldX, float worldY) {
-        float buttonMargin = 6f;
+        float buttonMargin = 8f;
         float x = undoIconX - buttonMargin;
         float y = undoIconY - buttonMargin;
-        float buttonSize = UNDO_ICON_SIZE + buttonMargin * 2;
+        float buttonSize = iconSize + buttonMargin * 2;
         return worldX >= x && worldX <= x + buttonSize &&
                worldY >= y && worldY <= y + buttonSize;
     }
@@ -1189,7 +1249,7 @@ public class GameScreen implements Screen, InputProcessor {
     }
 
     private int[] getCardAtPosition(float worldX, float worldY) {
-        float availableHeight = startY - BOTTOM_MARGIN;
+        float availableHeight = startY - safeBottomMargin;
 
         for (int col = 0; col < 10; col++) {
             List<Card> tableau = tableaus.get(col);

@@ -49,19 +49,29 @@ public class DifficultySelectScreen implements Screen {
 
         skin = createBasicSkin();
 
+        // Create root table with safe area padding
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        stage.addActor(rootTable);
+
+        // Content table centered within safe area
         Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        table.center();
+        rootTable.add(table).expand().fill()
+            .padTop(SafeAreaHelper.getTopInset())
+            .padBottom(SafeAreaHelper.getBottomInset())
+            .padLeft(SafeAreaHelper.getLeftInset())
+            .padRight(SafeAreaHelper.getRightInset());
 
         // Title
         Label titleLabel = new Label("Select Difficulty", skin, "title");
         table.add(titleLabel).colspan(2).padBottom(40f);
         table.row();
 
-        // Difficulty buttons in 3 rows x 2 columns
-        float buttonWidth = 240f;
-        float buttonHeight = 48f;
-        float padding = 8f;
+        // Difficulty buttons in 3 rows x 2 columns - larger for mobile touch
+        float buttonWidth = SafeAreaHelper.isMobile() ? 280f : 240f;
+        float buttonHeight = SafeAreaHelper.isMobile() ? 60f : 48f;
+        float padding = SafeAreaHelper.isMobile() ? 12f : 8f;
 
         for (int i = 0; i < 6; i++) {
             final int numSuits = i + 1;
@@ -86,7 +96,7 @@ public class DifficultySelectScreen implements Screen {
             }
         }
 
-        // Back button
+        // Back button - larger for mobile
         table.row();
         TextButton backButton = new TextButton("Back", skin);
         backButton.addListener(new ChangeListener() {
@@ -96,7 +106,9 @@ public class DifficultySelectScreen implements Screen {
                 dispose();
             }
         });
-        table.add(backButton).colspan(2).width(160f).height(40f).padTop(24f);
+        float backWidth = SafeAreaHelper.isMobile() ? 200f : 160f;
+        float backHeight = SafeAreaHelper.isMobile() ? 50f : 40f;
+        table.add(backButton).colspan(2).width(backWidth).height(backHeight).padTop(24f);
     }
 
     private Skin createBasicSkin() {

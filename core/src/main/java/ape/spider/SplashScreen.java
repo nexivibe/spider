@@ -37,8 +37,17 @@ public class SplashScreen implements Screen {
         float screenWidth = Gdx.graphics.getWidth();
         float screenHeight = Gdx.graphics.getHeight();
 
+        // Account for safe areas on mobile devices
+        float safeTop = SafeAreaHelper.getTopInset();
+        float safeBottom = SafeAreaHelper.getBottomInset();
+        float safeLeft = SafeAreaHelper.getLeftInset();
+        float safeRight = SafeAreaHelper.getRightInset();
+
+        float safeWidth = screenWidth - safeLeft - safeRight;
+        float safeHeight = screenHeight - safeTop - safeBottom;
+
         // Calculate available space for image (after margins and border)
-        float availableSize = Math.min(screenWidth, screenHeight) - (OUTER_MARGIN + BORDER_WIDTH) * 2;
+        float availableSize = Math.min(safeWidth, safeHeight) - (OUTER_MARGIN + BORDER_WIDTH) * 2;
 
         // Calculate scaled logo dimensions preserving aspect ratio
         float logoAspect = (float) logo.getWidth() / logo.getHeight();

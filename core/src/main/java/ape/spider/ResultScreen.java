@@ -40,9 +40,19 @@ public class ResultScreen implements Screen {
 
         skin = createBasicSkin();
 
+        // Create root table with safe area padding
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        stage.addActor(rootTable);
+
+        // Content table centered within safe area
         Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        table.center();
+        rootTable.add(table).expand().fill()
+            .padTop(SafeAreaHelper.getTopInset())
+            .padBottom(SafeAreaHelper.getBottomInset())
+            .padLeft(SafeAreaHelper.getLeftInset())
+            .padRight(SafeAreaHelper.getRightInset());
 
         // Title based on outcome
         String titleText = result.getOutcome() == GameResult.Outcome.WON ? "VICTORY!" : "Game Over";
@@ -89,10 +99,10 @@ public class ResultScreen implements Screen {
         }
         table.row();
 
-        // Buttons (15% smaller, horizontal layout)
+        // Buttons - larger for mobile touch targets
         table.row();
-        float buttonWidth = 170f;  // 15% smaller than 200
-        float buttonHeight = 51f;  // 15% smaller than 60
+        float buttonWidth = SafeAreaHelper.isMobile() ? 190f : 170f;
+        float buttonHeight = SafeAreaHelper.isMobile() ? 60f : 51f;
 
         // Create horizontal button table
         Table buttonTable = new Table();

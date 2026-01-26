@@ -33,9 +33,18 @@ public class MainMenuScreen implements Screen {
 
         skin = createBasicSkin();
 
+        // Create root table with safe area padding
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        stage.addActor(rootTable);
+
+        // Content table that will be centered within safe area
         Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        rootTable.add(table).expand().fill()
+            .padTop(SafeAreaHelper.getTopInset())
+            .padBottom(SafeAreaHelper.getBottomInset())
+            .padLeft(SafeAreaHelper.getLeftInset())
+            .padRight(SafeAreaHelper.getRightInset());
 
         TextButton soloPracticeButton = new TextButton("Solo Practice", skin);
         TextButton dailyGrindButton = new TextButton("Daily Grind", skin);
@@ -68,11 +77,13 @@ public class MainMenuScreen implements Screen {
             }
         });
 
-        float buttonWidth = 300f;
-        float buttonHeight = 70f;
+        // Scale button sizes for mobile
+        float buttonWidth = SafeAreaHelper.isMobile() ? 350f : 300f;
+        float buttonHeight = SafeAreaHelper.isMobile() ? 80f : 70f;
         float padding = 20f;
 
-        // Add title
+        // Add title - center it in the content table
+        table.center();
         Label titleLabel = new Label("SPIDER SOLITAIRE", skin, "title");
         table.add(titleLabel).padBottom(50f);
         table.row();

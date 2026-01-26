@@ -32,9 +32,19 @@ public class InfoScreen implements Screen {
 
         skin = createBasicSkin();
 
+        // Create root table with safe area padding
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        stage.addActor(rootTable);
+
+        // Content table centered within safe area
         Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        table.center();
+        rootTable.add(table).expand().fill()
+            .padTop(SafeAreaHelper.getTopInset())
+            .padBottom(SafeAreaHelper.getBottomInset())
+            .padLeft(SafeAreaHelper.getLeftInset())
+            .padRight(SafeAreaHelper.getRightInset());
 
         // Title
         Label titleLabel = new Label("About", skin, "title");
@@ -71,7 +81,10 @@ public class InfoScreen implements Screen {
             }
         });
 
-        table.add(backButton).width(300f).height(70f).pad(20f);
+        // Larger button for mobile touch targets
+        float buttonWidth = SafeAreaHelper.isMobile() ? 350f : 300f;
+        float buttonHeight = SafeAreaHelper.isMobile() ? 80f : 70f;
+        table.add(backButton).width(buttonWidth).height(buttonHeight).pad(20f);
     }
 
     private Skin createBasicSkin() {
