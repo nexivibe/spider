@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(git -C /mnt/c/Users/jeff/github/games/spider log --oneline)",
+      "Bash(./gradlew lwjgl3:compileJava:*)"
+    ]
+  }
+}
