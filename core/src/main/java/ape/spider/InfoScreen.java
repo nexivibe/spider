@@ -46,30 +46,37 @@ public class InfoScreen implements Screen {
             .padLeft(SafeAreaHelper.getLeftInset())
             .padRight(SafeAreaHelper.getRightInset());
 
+        // Calculate sizes
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+        float titlePadding = screenHeight * 0.05f;
+        float linePadding = screenHeight * 0.012f;
+
         // Title
         Label titleLabel = new Label("About", skin, "title");
-        table.add(titleLabel).padBottom(40f);
+        table.add(titleLabel).padBottom(titlePadding);
         table.row();
 
-        // Info message - split into multiple lines for better readability
-        String line1 = "This is spider solitaire made very simply";
-        String line2 = "without ads by the team at NexiVIBE.";
-        String line3 = "We want you to have good plain simple fun";
-        String line4 = "without distraction.";
+        // Info message
+        String[] lines = {
+            "Spider Solitaire",
+            "made simply, without ads",
+            "by the team at NexiVIBE.",
+            "",
+            "We want you to have",
+            "good plain simple fun",
+            "without distraction."
+        };
 
-        Label msg1 = new Label(line1, skin);
-        Label msg2 = new Label(line2, skin);
-        Label msg3 = new Label(line3, skin);
-        Label msg4 = new Label(line4, skin);
-
-        table.add(msg1).padBottom(5f);
-        table.row();
-        table.add(msg2).padBottom(20f);
-        table.row();
-        table.add(msg3).padBottom(5f);
-        table.row();
-        table.add(msg4).padBottom(50f);
-        table.row();
+        for (String line : lines) {
+            if (line.isEmpty()) {
+                table.add().height(linePadding * 2);
+            } else {
+                Label msgLabel = new Label(line, skin);
+                table.add(msgLabel).padBottom(linePadding);
+            }
+            table.row();
+        }
 
         // Back button
         TextButton backButton = new TextButton("Back to Menu", skin);
@@ -81,23 +88,24 @@ public class InfoScreen implements Screen {
             }
         });
 
-        // Larger button for mobile touch targets
-        float buttonWidth = SafeAreaHelper.isMobile() ? 350f : 300f;
-        float buttonHeight = SafeAreaHelper.isMobile() ? 80f : 70f;
-        table.add(backButton).width(buttonWidth).height(buttonHeight).pad(20f);
+        float buttonWidth = screenWidth * 0.75f;
+        float buttonHeight = screenHeight * 0.11f;
+        table.add(backButton).width(buttonWidth).height(buttonHeight).padTop(titlePadding * 1.5f);
     }
 
     private Skin createBasicSkin() {
         Skin skin = new Skin();
 
-        // Regular font with 2x scale
+        float density = Gdx.graphics.getDensity();
+        float fontScale = Math.max(1.6f, density * 1.3f);  // Body text
+        float titleScale = Math.max(2.2f, density * 1.8f); // Title
+
         BitmapFont font = new BitmapFont();
-        font.getData().setScale(2.0f);
+        font.getData().setScale(fontScale);
         skin.add("default-font", font);
 
-        // Large title font with 3x scale
         BitmapFont titleFont = new BitmapFont();
-        titleFont.getData().setScale(3.0f);
+        titleFont.getData().setScale(titleScale);
         skin.add("title-font", titleFont);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -107,20 +115,18 @@ public class InfoScreen implements Screen {
         pixmap.dispose();
 
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.4f, 1f));
-        textButtonStyle.down = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.3f, 1f));
-        textButtonStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
+        textButtonStyle.up = skin.newDrawable("white", new Color(0.25f, 0.45f, 0.35f, 1f));
+        textButtonStyle.down = skin.newDrawable("white", new Color(0.15f, 0.35f, 0.25f, 1f));
+        textButtonStyle.over = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.4f, 1f));
         textButtonStyle.font = font;
         textButtonStyle.fontColor = Color.WHITE;
         skin.add("default", textButtonStyle);
 
-        // Title label style
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
         titleStyle.fontColor = Color.WHITE;
         skin.add("title", titleStyle);
 
-        // Default label style
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = font;
         labelStyle.fontColor = Color.WHITE;
@@ -131,7 +137,7 @@ public class InfoScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        ScreenUtils.clear(0.1f, 0.3f, 0.2f, 1f);
         stage.act(delta);
         stage.draw();
     }
@@ -142,16 +148,13 @@ public class InfoScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {

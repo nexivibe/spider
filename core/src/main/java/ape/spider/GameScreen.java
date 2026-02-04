@@ -911,9 +911,18 @@ public class GameScreen implements Screen, InputProcessor {
     private Skin createMenuSkin() {
         Skin skin = new Skin();
 
+        // Scale fonts based on screen density for readable text on all devices
+        float density = Gdx.graphics.getDensity();
+        float menuFontScale = Math.max(1.6f, density * 1.3f);  // Button/body text
+        float titleFontScale = Math.max(2.2f, density * 1.8f); // Title
+
         BitmapFont menuFont = new BitmapFont();
-        menuFont.getData().setScale(2.0f); // Double the font size for menu
+        menuFont.getData().setScale(menuFontScale);
         skin.add("default-font", menuFont);
+
+        BitmapFont titleFont = new BitmapFont();
+        titleFont.getData().setScale(titleFontScale);
+        skin.add("title-font", titleFont);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.WHITE);
@@ -922,18 +931,18 @@ public class GameScreen implements Screen, InputProcessor {
         pixmap.dispose();
 
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.4f, 1f));
-        textButtonStyle.down = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.3f, 1f));
-        textButtonStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
+        textButtonStyle.up = skin.newDrawable("white", new Color(0.25f, 0.45f, 0.35f, 1f));
+        textButtonStyle.down = skin.newDrawable("white", new Color(0.15f, 0.35f, 0.25f, 1f));
+        textButtonStyle.over = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.4f, 1f));
         textButtonStyle.font = menuFont;
         textButtonStyle.fontColor = Color.WHITE;
         skin.add("default", textButtonStyle);
 
         com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle windowStyle =
             new com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle();
-        windowStyle.titleFont = menuFont;
+        windowStyle.titleFont = titleFont;
         windowStyle.titleFontColor = Color.WHITE;
-        windowStyle.background = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.25f, 0.95f));
+        windowStyle.background = skin.newDrawable("white", new Color(0.15f, 0.25f, 0.2f, 0.95f));
         skin.add("default", windowStyle);
 
         com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle labelStyle =
@@ -941,6 +950,12 @@ public class GameScreen implements Screen, InputProcessor {
         labelStyle.font = menuFont;
         labelStyle.fontColor = Color.WHITE;
         skin.add("default", labelStyle);
+
+        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle titleStyle =
+            new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
+        titleStyle.font = titleFont;
+        titleStyle.fontColor = Color.WHITE;
+        skin.add("title", titleStyle);
 
         return skin;
     }
@@ -951,6 +966,14 @@ public class GameScreen implements Screen, InputProcessor {
 
         // Note: Full-screen overlay is drawn separately in render() to cover letterbox areas
 
+        // Calculate sizes based on screen dimensions
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+        float buttonWidth = screenWidth * 0.75f;
+        float buttonHeight = screenHeight * 0.10f;
+        float padding = screenHeight * 0.02f;
+        float titlePadding = screenHeight * 0.035f;
+
         // Create centered table for menu content
         com.badlogic.gdx.scenes.scene2d.ui.Table menuTable = new com.badlogic.gdx.scenes.scene2d.ui.Table();
         menuTable.setFillParent(true);
@@ -958,8 +981,8 @@ public class GameScreen implements Screen, InputProcessor {
 
         // Title
         com.badlogic.gdx.scenes.scene2d.ui.Label titleLabel = new com.badlogic.gdx.scenes.scene2d.ui.Label(
-            "GAME PAUSED", menuSkin);
-        menuTable.add(titleLabel).padBottom(30f);
+            "GAME PAUSED", menuSkin, "title");
+        menuTable.add(titleLabel).padBottom(titlePadding);
         menuTable.row();
 
         // Stats
@@ -969,7 +992,7 @@ public class GameScreen implements Screen, InputProcessor {
                           "Undos: " + totalUndos;
         com.badlogic.gdx.scenes.scene2d.ui.Label statsLabel = new com.badlogic.gdx.scenes.scene2d.ui.Label(
             statsText, menuSkin);
-        menuTable.add(statsLabel).padBottom(30f);
+        menuTable.add(statsLabel).padBottom(titlePadding);
         menuTable.row();
 
         // Resume button
@@ -981,7 +1004,7 @@ public class GameScreen implements Screen, InputProcessor {
                 Gdx.input.setInputProcessor(GameScreen.this);
             }
         });
-        menuTable.add(resumeButton).width(250f).height(60f).padBottom(15f);
+        menuTable.add(resumeButton).width(buttonWidth).height(buttonHeight).padBottom(padding);
         menuTable.row();
 
         // Abort button
@@ -1003,7 +1026,7 @@ public class GameScreen implements Screen, InputProcessor {
                 dispose();
             }
         });
-        menuTable.add(abortButton).width(250f).height(60f);
+        menuTable.add(abortButton).width(buttonWidth).height(buttonHeight);
 
         menuStage.addActor(menuTable);
         Gdx.input.setInputProcessor(menuStage);

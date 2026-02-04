@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -40,6 +39,7 @@ public class MainMenuScreen implements Screen {
 
         // Content table that will be centered within safe area
         Table table = new Table();
+        table.center();
         rootTable.add(table).expand().fill()
             .padTop(SafeAreaHelper.getTopInset())
             .padBottom(SafeAreaHelper.getBottomInset())
@@ -61,8 +61,6 @@ public class MainMenuScreen implements Screen {
         dailyGrindButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                // Daily grind uses a fixed seed (will come from webhook later)
-                // For now, use today's date as seed
                 long dailySeed = getDailySeed();
                 game.setScreen(new DifficultySelectScreen(game, GameConfig.GameMode.DAILY_GRIND, dailySeed));
                 dispose();
@@ -77,15 +75,17 @@ public class MainMenuScreen implements Screen {
             }
         });
 
-        // Scale button sizes for mobile
-        float buttonWidth = SafeAreaHelper.isMobile() ? 350f : 300f;
-        float buttonHeight = SafeAreaHelper.isMobile() ? 80f : 70f;
-        float padding = 20f;
+        // Calculate sizes based on screen dimensions for balanced feel
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+        float buttonWidth = screenWidth * 0.85f;  // 85% of screen width
+        float buttonHeight = screenHeight * 0.12f;  // 12% of screen height - generous touch target
+        float padding = screenHeight * 0.02f;  // 2% padding
+        float titlePadding = screenHeight * 0.05f;  // 5% below title
 
-        // Add title - center it in the content table
-        table.center();
+        // Add title
         Label titleLabel = new Label("SPIDER SOLITAIRE", skin, "title");
-        table.add(titleLabel).padBottom(50f);
+        table.add(titleLabel).padBottom(titlePadding);
         table.row();
 
         table.add(soloPracticeButton).width(buttonWidth).height(buttonHeight).pad(padding);
@@ -96,8 +96,6 @@ public class MainMenuScreen implements Screen {
     }
 
     private long getDailySeed() {
-        // Generate a seed based on today's date
-        // This will be replaced by a webhook-provided seed later
         java.util.Calendar cal = java.util.Calendar.getInstance();
         int year = cal.get(java.util.Calendar.YEAR);
         int month = cal.get(java.util.Calendar.MONTH);
@@ -108,14 +106,19 @@ public class MainMenuScreen implements Screen {
     private Skin createBasicSkin() {
         Skin skin = new Skin();
 
-        // Regular font with 2x scale for buttons
+        // Scale fonts based on screen density for crisp text on all devices
+        float density = Gdx.graphics.getDensity();
+        float fontScale = Math.max(1.8f, density * 1.5f);  // Button text
+        float titleScale = Math.max(2.5f, density * 2.0f); // Title - not too big
+
+        // Button font
         BitmapFont font = new BitmapFont();
-        font.getData().setScale(2.0f);
+        font.getData().setScale(fontScale);
         skin.add("default-font", font);
 
-        // Large title font with 4x scale
+        // Title font
         BitmapFont titleFont = new BitmapFont();
-        titleFont.getData().setScale(4.0f);
+        titleFont.getData().setScale(titleScale);
         skin.add("title-font", titleFont);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -125,20 +128,18 @@ public class MainMenuScreen implements Screen {
         pixmap.dispose();
 
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.4f, 1f));
-        textButtonStyle.down = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.3f, 1f));
-        textButtonStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
+        textButtonStyle.up = skin.newDrawable("white", new Color(0.25f, 0.45f, 0.35f, 1f));  // Muted green
+        textButtonStyle.down = skin.newDrawable("white", new Color(0.15f, 0.35f, 0.25f, 1f));
+        textButtonStyle.over = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.4f, 1f));
         textButtonStyle.font = font;
         textButtonStyle.fontColor = Color.WHITE;
         skin.add("default", textButtonStyle);
 
-        // Title label style
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
         titleStyle.fontColor = Color.WHITE;
         skin.add("title", titleStyle);
 
-        // Default label style
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = font;
         labelStyle.fontColor = Color.WHITE;
@@ -149,7 +150,7 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        ScreenUtils.clear(0.1f, 0.3f, 0.2f, 1f);  // Dark green background
         stage.act(delta);
         stage.draw();
     }
@@ -160,16 +161,13 @@ public class MainMenuScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {

@@ -19,7 +19,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 public class ResultScreen implements Screen {
     private final Main game;
     private final GameResult result;
-    private final GameResult priorResult; // For retry comparison (null if first attempt)
+    private final GameResult priorResult;
     private Stage stage;
     private Skin skin;
 
@@ -54,29 +54,35 @@ public class ResultScreen implements Screen {
             .padLeft(SafeAreaHelper.getLeftInset())
             .padRight(SafeAreaHelper.getRightInset());
 
+        // Calculate sizes
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+        float titlePadding = screenHeight * 0.04f;
+        float statsPadding = screenHeight * 0.015f;
+
         // Title based on outcome
         String titleText = result.getOutcome() == GameResult.Outcome.WON ? "VICTORY!" : "Game Over";
         Label titleLabel = new Label(titleText, skin, "title");
         if (result.getOutcome() == GameResult.Outcome.WON) {
-            titleLabel.setColor(new Color(0.2f, 1f, 0.2f, 1f)); // Green for win
+            titleLabel.setColor(new Color(0.3f, 1f, 0.3f, 1f));
         }
-        table.add(titleLabel).colspan(2).padBottom(40f);
+        table.add(titleLabel).colspan(2).padBottom(titlePadding);
         table.row();
 
         // Stats with optional comparison
-        addStatRow(table, "Final Score", result.getScore(),
-            priorResult != null ? priorResult.getScore() : null, true); // Higher is better
+        addStatRow(table, "Score", result.getScore(),
+            priorResult != null ? priorResult.getScore() : null, true, statsPadding);
         addTimeStatRow(table, "Time", result.getTimeSeconds(), result.getFormattedTime(),
             priorResult != null ? priorResult.getTimeSeconds() : null,
-            priorResult != null ? priorResult.getFormattedTime() : null);
+            priorResult != null ? priorResult.getFormattedTime() : null, statsPadding);
         addStatRow(table, "Moves", result.getMoves(),
-            priorResult != null ? priorResult.getMoves() : null, false); // Lower is better
+            priorResult != null ? priorResult.getMoves() : null, false, statsPadding);
         addStatRow(table, "Undos", result.getUndos(),
-            priorResult != null ? priorResult.getUndos() : null, false); // Lower is better
+            priorResult != null ? priorResult.getUndos() : null, false, statsPadding);
 
-        // Suits completed (special formatting)
+        // Suits completed
         String suitsText = result.getCompletedSuits() + "/" + result.getRequiredSuits();
-        Label suitsNameLabel = new Label("Suits Completed:", skin, "stats");
+        Label suitsNameLabel = new Label("Suits:", skin, "stats");
         Label suitsValueLabel = new Label(suitsText, skin, "stats");
         if (priorResult != null) {
             int diff = result.getCompletedSuits() - priorResult.getCompletedSuits();
@@ -84,60 +90,58 @@ public class ResultScreen implements Screen {
                 String diffStr = " (" + (diff > 0 ? "+" : "") + diff + ")";
                 Label diffLabel = new Label(diffStr, skin, "stats");
                 diffLabel.setColor(diff > 0 ? Color.GREEN : Color.RED);
-                table.add(suitsNameLabel).right().padRight(10f).padBottom(10f);
+                table.add(suitsNameLabel).right().padRight(statsPadding).padBottom(statsPadding);
                 Table valueTable = new Table();
                 valueTable.add(suitsValueLabel);
                 valueTable.add(diffLabel);
-                table.add(valueTable).left().padBottom(10f);
+                table.add(valueTable).left().padBottom(statsPadding);
             } else {
-                table.add(suitsNameLabel).right().padRight(10f).padBottom(10f);
-                table.add(suitsValueLabel).left().padBottom(10f);
+                table.add(suitsNameLabel).right().padRight(statsPadding).padBottom(statsPadding);
+                table.add(suitsValueLabel).left().padBottom(statsPadding);
             }
         } else {
-            table.add(suitsNameLabel).right().padRight(10f).padBottom(10f);
-            table.add(suitsValueLabel).left().padBottom(10f);
+            table.add(suitsNameLabel).right().padRight(statsPadding).padBottom(statsPadding);
+            table.add(suitsValueLabel).left().padBottom(statsPadding);
         }
         table.row();
 
-        // Buttons - larger for mobile touch targets
+        // Buttons - stack vertically for better touch targets on mobile
         table.row();
-        float buttonWidth = SafeAreaHelper.isMobile() ? 190f : 170f;
-        float buttonHeight = SafeAreaHelper.isMobile() ? 60f : 51f;
+        float buttonWidth = screenWidth * 0.7f;
+        float buttonHeight = screenHeight * 0.10f;
+        float buttonPad = screenHeight * 0.015f;
 
-        // Create horizontal button table
-        Table buttonTable = new Table();
-
-        // Retry button (same seed, same difficulty)
-        TextButton retryButton = new TextButton("Retry", skin);
+        // Retry button
+        TextButton retryButton = new TextButton("Retry Same Deal", skin);
         retryButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                // Create new config with same seed and difficulty
                 GameConfig retryConfig = new GameConfig(
                     result.getConfig().getMode(),
                     result.getConfig().getNumSuits(),
                     result.getConfig().getSeed()
                 );
-                // Pass current result as prior result for comparison
                 game.setScreen(new GameScreen(game, retryConfig, result));
                 dispose();
             }
         });
-        buttonTable.add(retryButton).width(buttonWidth).height(buttonHeight).padRight(10f);
+        table.add(retryButton).colspan(2).width(buttonWidth).height(buttonHeight).pad(buttonPad);
+        table.row();
 
-        // Play Again button (new seed)
-        TextButton playAgainButton = new TextButton("Play Again", skin);
+        // Play Again button
+        TextButton playAgainButton = new TextButton("New Game", skin);
         playAgainButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                // Go back to difficulty select for solo practice
                 game.setScreen(new DifficultySelectScreen(game, GameConfig.GameMode.SOLO_PRACTICE));
                 dispose();
             }
         });
-        buttonTable.add(playAgainButton).width(buttonWidth).height(buttonHeight).padRight(10f);
+        table.add(playAgainButton).colspan(2).width(buttonWidth).height(buttonHeight).pad(buttonPad);
+        table.row();
 
-        TextButton menuButton = new TextButton("Menu", skin);
+        // Menu button
+        TextButton menuButton = new TextButton("Main Menu", skin, "secondary");
         menuButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -145,16 +149,15 @@ public class ResultScreen implements Screen {
                 dispose();
             }
         });
-        buttonTable.add(menuButton).width(buttonWidth).height(buttonHeight);
-
-        table.add(buttonTable).colspan(2).padTop(25f);
+        table.add(menuButton).colspan(2).width(buttonWidth).height(buttonHeight).pad(buttonPad);
     }
 
-    private void addStatRow(Table table, String name, int value, Integer priorValue, boolean higherIsBetter) {
+    private void addStatRow(Table table, String name, int value, Integer priorValue,
+                           boolean higherIsBetter, float padding) {
         Label nameLabel = new Label(name + ":", skin, "stats");
         Label valueLabel = new Label(String.valueOf(value), skin, "stats");
 
-        table.add(nameLabel).right().padRight(10f).padBottom(10f);
+        table.add(nameLabel).right().padRight(padding).padBottom(padding);
 
         if (priorValue != null) {
             int diff = value - priorValue;
@@ -167,27 +170,27 @@ public class ResultScreen implements Screen {
                 Table valueTable = new Table();
                 valueTable.add(valueLabel);
                 valueTable.add(diffLabel);
-                table.add(valueTable).left().padBottom(10f);
+                table.add(valueTable).left().padBottom(padding);
             } else {
-                table.add(valueLabel).left().padBottom(10f);
+                table.add(valueLabel).left().padBottom(padding);
             }
         } else {
-            table.add(valueLabel).left().padBottom(10f);
+            table.add(valueLabel).left().padBottom(padding);
         }
         table.row();
     }
 
     private void addTimeStatRow(Table table, String name, float timeSeconds, String formattedTime,
-                                 Float priorTimeSeconds, String priorFormattedTime) {
+                                Float priorTimeSeconds, String priorFormattedTime, float padding) {
         Label nameLabel = new Label(name + ":", skin, "stats");
         Label valueLabel = new Label(formattedTime, skin, "stats");
 
-        table.add(nameLabel).right().padRight(10f).padBottom(10f);
+        table.add(nameLabel).right().padRight(padding).padBottom(padding);
 
         if (priorTimeSeconds != null) {
             float diff = timeSeconds - priorTimeSeconds;
-            if (Math.abs(diff) >= 1) { // Only show if difference is at least 1 second
-                boolean isImprovement = diff < 0; // Lower time is better
+            if (Math.abs(diff) >= 1) {
+                boolean isImprovement = diff < 0;
                 int diffSeconds = (int) Math.abs(diff);
                 int diffMins = diffSeconds / 60;
                 int diffSecs = diffSeconds % 60;
@@ -203,12 +206,12 @@ public class ResultScreen implements Screen {
                 Table valueTable = new Table();
                 valueTable.add(valueLabel);
                 valueTable.add(diffLabel);
-                table.add(valueTable).left().padBottom(10f);
+                table.add(valueTable).left().padBottom(padding);
             } else {
-                table.add(valueLabel).left().padBottom(10f);
+                table.add(valueLabel).left().padBottom(padding);
             }
         } else {
-            table.add(valueLabel).left().padBottom(10f);
+            table.add(valueLabel).left().padBottom(padding);
         }
         table.row();
     }
@@ -216,19 +219,27 @@ public class ResultScreen implements Screen {
     private Skin createBasicSkin() {
         Skin skin = new Skin();
 
-        // Smaller font for stats (1.5x scale instead of 2x)
-        BitmapFont statsFont = new BitmapFont();
-        statsFont.getData().setScale(1.5f);
-        skin.add("stats-font", statsFont);
+        float density = Gdx.graphics.getDensity();
+        float fontScale = Math.max(1.6f, density * 1.3f);  // Button text
+        float titleScale = Math.max(2.5f, density * 2.0f); // Title
+        float statsScale = Math.max(1.5f, density * 1.2f); // Stats text
+        float smallScale = Math.max(1.4f, density * 1.1f); // Secondary buttons
 
-        // Button font
-        BitmapFont buttonFont = new BitmapFont();
-        buttonFont.getData().setScale(1.8f);
-        skin.add("default-font", buttonFont);
+        BitmapFont font = new BitmapFont();
+        font.getData().setScale(fontScale);
+        skin.add("default-font", font);
 
         BitmapFont titleFont = new BitmapFont();
-        titleFont.getData().setScale(2.8f);  // 30% smaller than 4.0
+        titleFont.getData().setScale(titleScale);
         skin.add("title-font", titleFont);
+
+        BitmapFont statsFont = new BitmapFont();
+        statsFont.getData().setScale(statsScale);
+        skin.add("stats-font", statsFont);
+
+        BitmapFont smallFont = new BitmapFont();
+        smallFont.getData().setScale(smallScale);
+        skin.add("small-font", smallFont);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.WHITE);
@@ -237,27 +248,33 @@ public class ResultScreen implements Screen {
         pixmap.dispose();
 
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.4f, 1f));
-        textButtonStyle.down = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.3f, 1f));
-        textButtonStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
-        textButtonStyle.font = buttonFont;
+        textButtonStyle.up = skin.newDrawable("white", new Color(0.25f, 0.45f, 0.35f, 1f));
+        textButtonStyle.down = skin.newDrawable("white", new Color(0.15f, 0.35f, 0.25f, 1f));
+        textButtonStyle.over = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.4f, 1f));
+        textButtonStyle.font = font;
         textButtonStyle.fontColor = Color.WHITE;
         skin.add("default", textButtonStyle);
+
+        TextButton.TextButtonStyle secondaryStyle = new TextButton.TextButtonStyle();
+        secondaryStyle.up = skin.newDrawable("white", new Color(0.35f, 0.35f, 0.4f, 1f));
+        secondaryStyle.down = skin.newDrawable("white", new Color(0.25f, 0.25f, 0.3f, 1f));
+        secondaryStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.45f, 1f));
+        secondaryStyle.font = smallFont;
+        secondaryStyle.fontColor = Color.WHITE;
+        skin.add("secondary", secondaryStyle);
 
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
         titleStyle.fontColor = Color.WHITE;
         skin.add("title", titleStyle);
 
-        // Stats label style (smaller)
         Label.LabelStyle statsStyle = new Label.LabelStyle();
         statsStyle.font = statsFont;
         statsStyle.fontColor = Color.WHITE;
         skin.add("stats", statsStyle);
 
-        // Default label style
         Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = buttonFont;
+        labelStyle.font = font;
         labelStyle.fontColor = Color.WHITE;
         skin.add("default", labelStyle);
 
@@ -266,7 +283,7 @@ public class ResultScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        ScreenUtils.clear(0.1f, 0.3f, 0.2f, 1f);
         stage.act(delta);
         stage.draw();
     }
@@ -277,16 +294,13 @@ public class ResultScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {

@@ -24,12 +24,11 @@ public class DifficultySelectScreen implements Screen {
     private Skin skin;
 
     private static final String[] DIFFICULTY_NAMES = {
-        "1 - Easy",
-        "2 - Medium",
-        "3 - Hard",
-        "4 - Expert",
-        "5 - Master",
-        "6 - Impossible"
+        "1 Suit", "2 Suits", "3 Suits", "4 Suits", "5 Suits", "6 Suits"
+    };
+
+    private static final String[] DIFFICULTY_LABELS = {
+        "Easy", "Medium", "Hard", "Expert", "Master", "Impossible"
     };
 
     public DifficultySelectScreen(Main game, GameConfig.GameMode mode) {
@@ -63,19 +62,24 @@ public class DifficultySelectScreen implements Screen {
             .padLeft(SafeAreaHelper.getLeftInset())
             .padRight(SafeAreaHelper.getRightInset());
 
+        // Calculate sizes based on screen dimensions
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+        float buttonWidth = screenWidth * 0.44f;  // ~44% width for 2 columns with gap
+        float buttonHeight = screenHeight * 0.11f;  // 11% of screen height
+        float padding = screenHeight * 0.012f;
+        float titlePadding = screenHeight * 0.03f;
+
         // Title
         Label titleLabel = new Label("Select Difficulty", skin, "title");
-        table.add(titleLabel).colspan(2).padBottom(40f);
+        table.add(titleLabel).colspan(2).padBottom(titlePadding);
         table.row();
 
-        // Difficulty buttons in 3 rows x 2 columns - larger for mobile touch
-        float buttonWidth = SafeAreaHelper.isMobile() ? 280f : 240f;
-        float buttonHeight = SafeAreaHelper.isMobile() ? 60f : 48f;
-        float padding = SafeAreaHelper.isMobile() ? 12f : 8f;
-
+        // Difficulty buttons in 3 rows x 2 columns
         for (int i = 0; i < 6; i++) {
             final int numSuits = i + 1;
-            TextButton button = new TextButton(DIFFICULTY_NAMES[i], skin);
+            String buttonText = DIFFICULTY_NAMES[i] + "\n" + DIFFICULTY_LABELS[i];
+            TextButton button = new TextButton(buttonText, skin);
             button.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
@@ -90,15 +94,16 @@ public class DifficultySelectScreen implements Screen {
                 }
             });
             table.add(button).width(buttonWidth).height(buttonHeight).pad(padding);
+
             // New row after every 2 buttons
             if (i % 2 == 1) {
                 table.row();
             }
         }
 
-        // Back button - larger for mobile
+        // Back button
         table.row();
-        TextButton backButton = new TextButton("Back", skin);
+        TextButton backButton = new TextButton("Back", skin, "secondary");
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -106,21 +111,31 @@ public class DifficultySelectScreen implements Screen {
                 dispose();
             }
         });
-        float backWidth = SafeAreaHelper.isMobile() ? 200f : 160f;
-        float backHeight = SafeAreaHelper.isMobile() ? 50f : 40f;
-        table.add(backButton).colspan(2).width(backWidth).height(backHeight).padTop(24f);
+        float backWidth = screenWidth * 0.5f;
+        float backHeight = screenHeight * 0.09f;
+        table.add(backButton).colspan(2).width(backWidth).height(backHeight).padTop(titlePadding * 1.5f);
     }
 
     private Skin createBasicSkin() {
         Skin skin = new Skin();
 
+        // Scale fonts based on screen density
+        float density = Gdx.graphics.getDensity();
+        float fontScale = Math.max(1.6f, density * 1.3f);  // Button text
+        float titleScale = Math.max(2.2f, density * 1.8f); // Title
+        float smallFontScale = Math.max(1.4f, density * 1.1f); // Back button
+
         BitmapFont font = new BitmapFont();
-        font.getData().setScale(2.0f);
+        font.getData().setScale(fontScale);
         skin.add("default-font", font);
 
         BitmapFont titleFont = new BitmapFont();
-        titleFont.getData().setScale(3.0f);
+        titleFont.getData().setScale(titleScale);
         skin.add("title-font", titleFont);
+
+        BitmapFont smallFont = new BitmapFont();
+        smallFont.getData().setScale(smallFontScale);
+        skin.add("small-font", smallFont);
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.WHITE);
@@ -128,13 +143,23 @@ public class DifficultySelectScreen implements Screen {
         skin.add("white", new Texture(pixmap));
         pixmap.dispose();
 
+        // Primary button style (difficulty buttons)
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.4f, 1f));
-        textButtonStyle.down = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.3f, 1f));
-        textButtonStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
+        textButtonStyle.up = skin.newDrawable("white", new Color(0.25f, 0.45f, 0.35f, 1f));
+        textButtonStyle.down = skin.newDrawable("white", new Color(0.15f, 0.35f, 0.25f, 1f));
+        textButtonStyle.over = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.4f, 1f));
         textButtonStyle.font = font;
         textButtonStyle.fontColor = Color.WHITE;
         skin.add("default", textButtonStyle);
+
+        // Secondary button style (back button)
+        TextButton.TextButtonStyle secondaryStyle = new TextButton.TextButtonStyle();
+        secondaryStyle.up = skin.newDrawable("white", new Color(0.35f, 0.35f, 0.4f, 1f));
+        secondaryStyle.down = skin.newDrawable("white", new Color(0.25f, 0.25f, 0.3f, 1f));
+        secondaryStyle.over = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.45f, 1f));
+        secondaryStyle.font = smallFont;
+        secondaryStyle.fontColor = Color.WHITE;
+        skin.add("secondary", secondaryStyle);
 
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
@@ -151,7 +176,7 @@ public class DifficultySelectScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        ScreenUtils.clear(0.1f, 0.3f, 0.2f, 1f);
         stage.act(delta);
         stage.draw();
     }
@@ -162,16 +187,13 @@ public class DifficultySelectScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
-    public void hide() {
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {
